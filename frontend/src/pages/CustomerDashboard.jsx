@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { getRetailerInventory, createOrder } from '../utils/api';
-import { ShoppingCart, Store, Search, Plus, Minus, LogOut, CreditCard, MapPin, Navigation } from 'lucide-react';
+import { getRetailerInventory } from '../utils/api';
+import { ShoppingCart, Store, Search, Plus, Minus, LogOut, CreditCard, Navigation, ArrowUpDown } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 
 const CustomerDashboard = () => {
@@ -13,13 +13,14 @@ const CustomerDashboard = () => {
     const [inventory, setInventory] = useState([]);
     const [cart, setCart] = useState({}); 
     const [loading, setLoading] = useState(false);
+    
+    // 🟢 NEW: Sorting State
+    const [sortOption, setSortOption] = useState('default'); // 'default', 'low-high', 'high-low'
 
     // --- Location State ---
     const [userLocation, setUserLocation] = useState(null);
     const [nearbyShops, setNearbyShops] = useState([]);
 
-    // --- Mock Data for "Innovation" Marks ---
-    // These simulate real shops at specific coordinates
     // --- Mock Data: Real Hyderabad Locations ---
     const MOCK_RETAILERS = [
         { id: 1, name: "Ratnadeep Supermarket (Hitech City)", lat: 17.4435, lng: 78.3772 }, 
@@ -27,19 +28,12 @@ const CustomerDashboard = () => {
         { id: 3, name: "Campus Mart (BITS Hyderabad)", lat: 17.5449, lng: 78.5718 } 
     ];
 
-    // --- 1. Get Location on Load ---
     useEffect(() => {
-        // Load default shop
         fetchShop();
-
-        // Get GPS Location
         if (navigator.geolocation) {
             navigator.geolocation.getCurrentPosition(
                 (position) => {
-                    setUserLocation({
-                        lat: position.coords.latitude,
-                        lng: position.coords.longitude
-                    });
+                    setUserLocation({ lat: position.coords.latitude, lng: position.coords.longitude });
                     calculateDistances(position.coords.latitude, position.coords.longitude);
                 },
                 (error) => console.log("Location permission denied")
@@ -47,47 +41,51 @@ const CustomerDashboard = () => {
         }
     }, []);
 
-    // --- 2. Calculate Distance (Haversine Formula) ---
     const calculateDistances = (userLat, userLng) => {
         const updatedShops = MOCK_RETAILERS.map(shop => {
-            const R = 6371; // Radius of earth in km
+            const R = 6371; 
             const dLat = deg2rad(shop.lat - userLat);
             const dLon = deg2rad(shop.lng - userLng);
-            const a = 
-                Math.sin(dLat/2) * Math.sin(dLat/2) +
-                Math.cos(deg2rad(userLat)) * Math.cos(deg2rad(shop.lat)) * Math.sin(dLon/2) * Math.sin(dLon/2); 
+            const a = Math.sin(dLat/2) * Math.sin(dLat/2) + Math.cos(deg2rad(userLat)) * Math.cos(deg2rad(shop.lat)) * Math.sin(dLon/2) * Math.sin(dLon/2); 
             const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)); 
-            const d = R * c; // Distance in km
+            const d = R * c; 
             return { ...shop, distance: d.toFixed(1) };
         });
-        // Sort by nearest
         updatedShops.sort((a, b) => a.distance - b.distance);
         setNearbyShops(updatedShops);
-    };
-    const simulateLocation = () => {
-        // Coordinates for BITS Hyderabad Audi
-        const audiLat = 17.5455; 
-        const audiLng = 78.5715;
-        
-        console.log("Simulating Location: BITS Audi");
-        setUserLocation({ lat: audiLat, lng: audiLng });
-        calculateDistances(audiLat, audiLng);
     };
 
     const deg2rad = (deg) => deg * (Math.PI/180);
 
-    // --- 3. Fetch Inventory ---
+    // ⚡ Demo: Force Location to BITS Hyderabad Audi
+    const simulateLocation = () => {
+        const audiLat = 17.5455; 
+        const audiLng = 78.5715;
+        setUserLocation({ lat: audiLat, lng: audiLng });
+        calculateDistances(audiLat, audiLng);
+    };
+
     const fetchShop = async () => {
         setLoading(true);
         try {
             const res = await getRetailerInventory(shopId);
             setInventory(res.data);
         } catch (err) {
-            // alert("Shop not found"); // Commented out to avoid annoyances during typing
             setInventory([]);
         } finally {
             setLoading(false);
         }
+    };
+
+    // 🟢 NEW: Sorting Logic
+    const getSortedInventory = () => {
+        let sorted = [...inventory];
+        if (sortOption === 'low-high') {
+            sorted.sort((a, b) => a.price - b.price);
+        } else if (sortOption === 'high-low') {
+            sorted.sort((a, b) => b.price - a.price);
+        }
+        return sorted;
     };
 
     // --- Cart Logic ---
@@ -126,7 +124,6 @@ const CustomerDashboard = () => {
         });
     };
 
-    // --- RENDER ---
     return (
         <div className="min-h-screen bg-gray-50">
             {/* Navbar */}
@@ -149,38 +146,28 @@ const CustomerDashboard = () => {
                 {/* LEFT COLUMN: Browser */}
                 <div className="md:col-span-2 space-y-6">
                     
-                    {/* 📍 LOCATION MODULE (New Feature) */}
+                    {/* Location Module */}
                     <div className="bg-white p-4 rounded-xl shadow border-l-4 border-blue-500">
-                       <div className="flex justify-between items-center mb-3">
+                        <div className="flex justify-between items-center mb-3">
                             <h2 className="text-lg font-bold flex items-center gap-2 text-gray-800">
                                 <Navigation className="text-blue-600" /> Nearby Shops
                             </h2>
-    
-                        {/* Only show this button if location is missing */}
-                        {!userLocation && (
-                            <button 
-                                onClick={simulateLocation}
-                                className="text-xs bg-gray-200 hover:bg-gray-300 px-2 py-1 rounded text-gray-600 border border-gray-300"
-                            >
-                                📍 Demo: Force Location
-                            </button>
-                        )}
-                    </div>
+                            {!userLocation && (
+                                <button onClick={simulateLocation} className="text-xs bg-gray-200 hover:bg-gray-300 px-2 py-1 rounded text-gray-600 border border-gray-300">
+                                    📍 Demo: Force Location
+                                </button>
+                            )}
+                        </div>
                         {!userLocation ? (
                             <p className="text-sm text-gray-500">📍 Please allow location access to see nearest stores.</p>
                         ) : (
                             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                                 {nearbyShops.map(shop => (
-                                    <div 
-                                        key={shop.id} 
-                                        onClick={() => { setShopId(shop.id.toString()); fetchShop(); }}
-                                        className={`p-3 border rounded cursor-pointer transition ${shopId === shop.id.toString() ? 'bg-blue-50 border-blue-500 ring-1 ring-blue-500' : 'hover:bg-gray-50'}`}
-                                    >
+                                    <div key={shop.id} onClick={() => { setShopId(shop.id.toString()); fetchShop(); }}
+                                        className={`p-3 border rounded cursor-pointer transition ${shopId === shop.id.toString() ? 'bg-blue-50 border-blue-500 ring-1 ring-blue-500' : 'hover:bg-gray-50'}`}>
                                         <div className="flex justify-between items-start">
                                             <h3 className="font-bold text-sm">{shop.name}</h3>
-                                            <span className="text-xs font-bold text-green-600 bg-green-100 px-1.5 py-0.5 rounded-full">
-                                                {shop.distance} km
-                                            </span>
+                                            <span className="text-xs font-bold text-green-600 bg-green-100 px-1.5 py-0.5 rounded-full">{shop.distance} km</span>
                                         </div>
                                         <p className="text-xs text-gray-500 mt-1">Click to Visit</p>
                                     </div>
@@ -189,16 +176,32 @@ const CustomerDashboard = () => {
                         )}
                     </div>
 
-                    {/* Shop Search Manual */}
-                    <div className="bg-white p-4 rounded-xl shadow flex gap-2 items-center">
-                        <Store className="text-gray-400" />
-                        <input 
-                            type="number" value={shopId} onChange={(e) => setShopId(e.target.value)}
-                            className="border rounded p-2 flex-grow outline-none" placeholder="Or Enter Retailer ID manually"
-                        />
-                        <button onClick={fetchShop} className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 flex items-center gap-2">
-                            <Search className="w-4 h-4" /> Visit
-                        </button>
+                    {/* Search & Sort Bar */}
+                    <div className="bg-white p-4 rounded-xl shadow flex flex-col sm:flex-row gap-4 items-center">
+                        <div className="flex gap-2 items-center flex-grow w-full">
+                            <Store className="text-gray-400" />
+                            <input 
+                                type="number" value={shopId} onChange={(e) => setShopId(e.target.value)}
+                                className="border rounded p-2 flex-grow outline-none" placeholder="Enter Retailer ID"
+                            />
+                            <button onClick={fetchShop} className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 flex items-center gap-2">
+                                <Search className="w-4 h-4" /> Visit
+                            </button>
+                        </div>
+
+                        {/* 🟢 NEW: Sort Dropdown */}
+                        <div className="flex items-center gap-2 w-full sm:w-auto border-l pl-0 sm:pl-4">
+                            <ArrowUpDown className="text-gray-400 w-5 h-5" />
+                            <select 
+                                className="border rounded p-2 text-sm bg-gray-50 outline-none w-full"
+                                value={sortOption}
+                                onChange={(e) => setSortOption(e.target.value)}
+                            >
+                                <option value="default">Sort by: Default</option>
+                                <option value="low-high">Price: Low to High</option>
+                                <option value="high-low">Price: High to Low</option>
+                            </select>
+                        </div>
                     </div>
 
                     {/* Inventory Grid */}
@@ -207,7 +210,8 @@ const CustomerDashboard = () => {
                             {inventory.length === 0 ? (
                                 <p className="col-span-2 text-center text-gray-500 py-10">No items found in this shop.</p>
                             ) : (
-                                inventory.map((item) => (
+                                // 🟢 NEW: Map over getSortedInventory() instead of inventory
+                                getSortedInventory().map((item) => (
                                     <div key={item.inventoryId} className="bg-white p-4 rounded-xl shadow hover:shadow-md transition flex flex-col justify-between border">
                                         <div className="flex gap-4">
                                             <img src={item.product.image || 'https://via.placeholder.com/100'} alt={item.product.name} className="w-20 h-20 object-cover rounded bg-gray-200" />
