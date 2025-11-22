@@ -1,0 +1,38 @@
+Project Summary: Live MART – Hyper-local E-Commerce System
+We are building a 3-tier e-commerce platform using Java Spring Boot (Backend) and React (Frontend). The system connects Customers, Retailers, and Wholesalers, enabling real-time inventory management, order tracking, and B2B restocking.
+1. Tech Stack
+Backend: Spring Boot 3.3.5, Java 21, MySQL, Spring Security (PermitAll), JavaMailSender.
+Frontend: React + Vite, Tailwind CSS, Axios, Lucide Icons.
+Database: MySQL (Entities: User, Product, Order, RetailerInventory, WholesaleOrder, Feedback).
+2. Completed Features
+🟢 Customer Module
+Dashboard: Browse nearby shops (Simulated using Haversine Formula), View Products, Sort by Price.
+Cart & Checkout: Add/Remove items, Select Payment Mode (Online Card Simulation or Cash on Delivery).
+Order Tracking: Receive email notifications for Order Placed, Packed, and Delivered.
+Feedback: Rate products (1-5 stars) after delivery.
+🔵 Retailer Module
+Inventory Management: View current stock.
+Order Fulfillment: View incoming customer orders with detailed item breakdown.
+Status Updates: Mark orders as PACKED -> DELIVERED (Triggers Email).
+B2B Restocking: Request stock from Wholesaler (instead of magical updates).
+Feedback View: Read customer reviews for sold products.
+🟣 Wholesaler Module
+Master Catalog: Add new products to the global system.
+Request Management: View pending stock requests from Retailers and Approve them (Auto-updates Retailer inventory).
+3. Technical Highlights (For Report/Demo)
+Transactional Logic: @Transactional ensures stock is deducted only when an order is successfully placed.
+Geolocation Simulation: Uses browser GPS + Haversine math to sort shops by distance.
+Async Emails: Uses background threads to send emails without blocking the UI.
+RBAC: Role-Based Access Control ensures secure routing.
+4. Recent Fixes Applied
+Security: Removed hardcoded credentials from Git history; switched to Environment Variables logic (or placeholders).
+Frontend: Fixed "Shop Details" showing for Customers in Signup. Fixed "Retailer Order View" not showing items.
+Backend: Fixed WholesaleController price/ID errors. Added EmailService for status updates.
+5. Remaining Tasks (Optional/Future Scope)
+Social Login (Google/Facebook) – Skipped (Complexity).
+OTP Auth – Skipped (Cost).
+Real Maps API – Skipped (Cost/Credit Card requirement).
+
+
+EmailID: noreply.scamkart1@gmail.com
+Password: Scam4UKart123
